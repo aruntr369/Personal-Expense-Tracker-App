@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/utils/constants/app_constants.dart';
 import '../../../../domain/entities/expense_entry.dart';
 import '../../../../domain/entities/income_entry.dart';
 import '../../../bloc/finance/finance_bloc.dart';
@@ -25,15 +26,8 @@ class _EntryFormState extends State<EntryForm> {
   DateTime _selectedDate = DateTime.now();
   double? _amount;
 
-  final _incomeCategories = ['Salary', 'Bonus', 'Freelance', 'Interest'];
-  final _expenseCategories = [
-    'Entertainment',
-    'Food',
-    'Transportation',
-    'Shopping',
-    'Utilities',
-    'Other',
-  ];
+  final _incomeCategories = CategoryTypes.income;
+  final _expenseCategories = CategoryTypes.expense;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +37,6 @@ class _EntryFormState extends State<EntryForm> {
 
     return BlocListener<FinanceBloc, FinanceState>(
       listener: (context, state) {
-        // This listener now correctly fires after the BLoC reloads the entries.
         if (state is EntriesLoaded) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -56,6 +49,30 @@ class _EntryFormState extends State<EntryForm> {
             ),
           );
           Navigator.of(context).pop();
+        } else if (state is ExpenseLimitWarning) {
+          showDialog(
+            context: context,
+            builder:
+                (dialogContext) => AlertDialog(
+                  title: Text('Spending Limit Warning'),
+                  content: Text(state.message),
+                  actions: [
+                    TextButton(
+                      child: Text('Cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                    ),
+                    FilledButton(
+                      child: Text('Add Anyway'),
+                      onPressed: () {
+                        context.read<FinanceBloc>().add(
+                          AddExpenseWithConfirmation(state.expenseToAdd),
+                        );
+                        Navigator.of(dialogContext).pop();
+                      },
+                    ),
+                  ],
+                ),
+          );
         } else if (state is FinanceError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

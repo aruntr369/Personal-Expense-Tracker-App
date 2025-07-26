@@ -7,6 +7,9 @@ import 'package:personal_finance_app/domain/usecases/add_expense_entry.dart';
 import 'package:personal_finance_app/domain/usecases/add_income_entry.dart';
 import 'package:personal_finance_app/presentation/bloc/finance/finance_bloc.dart';
 
+import '../../domain/usecases/get_category_limits.dart';
+import '../../domain/usecases/update_category_limit.dart';
+import '../../presentation/bloc/category_management/category_management_bloc.dart';
 import '../routes/app_router.dart';
 
 final sl = GetIt.instance;
@@ -23,6 +26,16 @@ void setupLocator() {
 
   sl.registerLazySingleton(() => AddIncomeEntry(sl()));
   sl.registerLazySingleton(() => AddExpenseEntry(sl()));
+
+  sl.registerFactory(
+    () => CategoryManagementBloc(
+      getCategoryLimits: sl(),
+      updateCategoryLimit: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton(() => GetCategoryLimits(sl()));
+  sl.registerLazySingleton(() => UpdateCategoryLimit(sl()));
 
   sl.registerLazySingleton<FinanceRepository>(
     () => FinanceRepositoryImpl(sl()),

@@ -31,3 +31,8 @@ class FilterAndSortEntries extends FinanceEvent {
     this.sortAscending,
   });
 }
+
+class AddExpenseWithConfirmation extends FinanceEvent {
+  final ExpenseEntry entry;
+  AddExpenseWithConfirmation(this.entry);
+}

@@ -1,7 +1,6 @@
 import '../../domain/entities/category_limit.dart';
 import '../../domain/entities/expense_entry.dart';
 import '../../domain/entities/income_entry.dart';
-import '../../domain/entities/summary_entry.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/finance_repository.dart';
 import '../datasources/finance_local_data_source.dart';
@@ -32,38 +31,16 @@ class FinanceRepositoryImpl implements FinanceRepository {
       localDataSource.getExpenseEntries(month: month);
 
   @override
-  Future<void> setCategoryLimit(CategoryLimit limit) =>
-      localDataSource.setCategoryLimit(limit);
+  Future<void> updateCategoryLimit(CategoryLimit categoryLimit) =>
+      localDataSource.updateCategoryLimit(categoryLimit);
 
   @override
-  Future<CategoryLimit?> getCategoryLimit(String category) =>
-      localDataSource.getCategoryLimit(category);
+  Future<List<CategoryLimit>> getExpenseCategoryLimits() =>
+      localDataSource.getExpenseCategoryLimits();
 
   @override
-  Future<List<CategoryLimit>> getAllCategoryLimits() =>
-      localDataSource.getAllCategoryLimits();
-
-  @override
-  Future<List<SummaryEntry>> getMonthlySummary(DateTime month) async {
-    // Implement summary logic here or delegate to localDataSource
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<dynamic>> searchEntries(String query) {
-    // Implement search logic
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<dynamic>> filterEntries({String? category, DateTime? date}) {
-    // Implement filter logic
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<dynamic>> sortEntries({bool ascending = true}) {
-    // Implement sort logic
-    throw UnimplementedError();
-  }
+  Future<double> getSpentAmountForCategoryInMonth(
+    String categoryName,
+    DateTime month,
+  ) => localDataSource.getSpentAmountForCategoryInMonth(categoryName, month);
 }

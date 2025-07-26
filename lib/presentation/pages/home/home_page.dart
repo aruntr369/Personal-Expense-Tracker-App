@@ -84,6 +84,13 @@ class _HomePageView extends StatelessWidget {
         centerTitle: false,
         actions: [
           IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Manage Categories',
+            onPressed:
+                () => context.router.push(const CategoryManagementRoute()),
+          ),
+
+          IconButton(
             icon: const Icon(Icons.format_list_bulleted_outlined),
             tooltip: 'View Full Summary',
             onPressed: () => context.router.push(const SummaryRoute()),

@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 
+import '../../core/utils/constants/app_constants.dart';
 import '../../domain/entities/category_limit.dart';
 import '../../domain/entities/expense_entry.dart';
 import '../../domain/entities/income_entry.dart';
@@ -10,10 +11,6 @@ import '../models/income_entry_model.dart';
 import 'finance_local_data_source.dart';
 
 class FinanceLocalDataSourceImpl implements FinanceLocalDataSource {
-  static const String incomeBoxName = 'incomeBox';
-  static const String expenseBoxName = 'expenseBox';
-  static const String categoryLimitBoxName = 'categoryLimitBox';
-
   @override
   Future<List<Transaction>> getTransactions({DateTime? month}) async {
     final incomes = await getIncomeEntries();
@@ -29,7 +26,7 @@ class FinanceLocalDataSourceImpl implements FinanceLocalDataSource {
 
   @override
   Future<void> addIncomeEntry(IncomeEntry entry) async {
-    final box = await Hive.openBox<IncomeEntryModel>(incomeBoxName);
+    final box = await Hive.openBox<IncomeEntryModel>(HiveNames.incomeBoxName);
     final model = IncomeEntryModel(
       id: entry.id,
       category: entry.category,
@@ -42,7 +39,7 @@ class FinanceLocalDataSourceImpl implements FinanceLocalDataSource {
 
   @override
   Future<List<IncomeEntry>> getIncomeEntries({DateTime? month}) async {
-    final box = await Hive.openBox<IncomeEntryModel>(incomeBoxName);
+    final box = await Hive.openBox<IncomeEntryModel>(HiveNames.incomeBoxName);
     final entries =
         box.values
             .where((e) {
@@ -64,7 +61,7 @@ class FinanceLocalDataSourceImpl implements FinanceLocalDataSource {
 
   @override
   Future<void> addExpenseEntry(ExpenseEntry entry) async {
-    final box = await Hive.openBox<ExpenseEntryModel>(expenseBoxName);
+    final box = await Hive.openBox<ExpenseEntryModel>(HiveNames.expenseBoxName);
     final model = ExpenseEntryModel(
       id: entry.id,
       category: entry.category,
@@ -78,7 +75,7 @@ class FinanceLocalDataSourceImpl implements FinanceLocalDataSource {
 
   @override
   Future<List<ExpenseEntry>> getExpenseEntries({DateTime? month}) async {
-    final box = await Hive.openBox<ExpenseEntryModel>(expenseBoxName);
+    final box = await Hive.openBox<ExpenseEntryModel>(HiveNames.expenseBoxName);
     final entries =
         box.values
             .where((e) {
@@ -100,34 +97,55 @@ class FinanceLocalDataSourceImpl implements FinanceLocalDataSource {
   }
 
   @override
-  Future<void> setCategoryLimit(CategoryLimit limit) async {
-    final box = await Hive.openBox<CategoryLimitModel>(categoryLimitBoxName);
-    final model = CategoryLimitModel(
-      category: limit.category,
-      limitAmount: limit.limitAmount,
+  Future<void> updateCategoryLimit(CategoryLimit categoryLimit) async {
+    final box = await Hive.openBox<CategoryLimitModel>(
+      HiveNames.categoryLimitBoxName,
     );
-    await box.put(model.category, model);
-  }
-
-  @override
-  Future<CategoryLimit?> getCategoryLimit(String category) async {
-    final box = await Hive.openBox<CategoryLimitModel>(categoryLimitBoxName);
-    final model = box.get(category);
-    if (model == null) return null;
-    return CategoryLimit(
-      category: model.category,
-      limitAmount: model.limitAmount,
+    await box.put(
+      categoryLimit.category,
+      CategoryLimitModel(
+        category: categoryLimit.category,
+        limitAmount: categoryLimit.limitAmount,
+      ),
     );
   }
 
   @override
-  Future<List<CategoryLimit>> getAllCategoryLimits() async {
-    final box = await Hive.openBox<CategoryLimitModel>(categoryLimitBoxName);
-    return box.values
-        .map(
-          (e) =>
-              CategoryLimit(category: e.category, limitAmount: e.limitAmount),
-        )
-        .toList();
+  Future<List<CategoryLimit>> getExpenseCategoryLimits() async {
+    final box = await Hive.openBox<CategoryLimitModel>(
+      HiveNames.categoryLimitBoxName,
+    );
+    final defaultCategories = CategoryTypes.expense;
+    for (var catName in defaultCategories) {
+      if (!box.containsKey(catName)) {
+        await box.put(
+          catName,
+          CategoryLimitModel(category: catName, limitAmount: 0.0),
+        );
+      }
+    }
+    return box.values.map((model) => model.toDomain()).toList();
+  }
+
+  @override
+  Future<double> getSpentAmountForCategoryInMonth(
+    String categoryName,
+    DateTime month,
+  ) async {
+    final box = await Hive.openBox<ExpenseEntryModel>(HiveNames.expenseBoxName);
+
+    final relevantExpenses = box.values.where(
+      (expense) =>
+          expense.category == categoryName &&
+          expense.date.year == month.year &&
+          expense.date.month == month.month,
+    );
+
+    final double totalSpent = relevantExpenses.fold(
+      0.0,
+      (sum, expense) => sum + expense.amount,
+    );
+
+    return totalSpent;
   }
 }

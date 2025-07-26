@@ -1,13 +1,18 @@
-// Run: flutter pub run build_runner build to generate Hive type adapters
 import 'package:hive/hive.dart';
+import 'package:personal_finance_app/domain/entities/category_limit.dart';
+
 part 'category_limit_model.g.dart';
 
 @HiveType(typeId: 2)
 class CategoryLimitModel extends HiveObject {
   @HiveField(0)
-  String category;
+  final String category;
+
   @HiveField(1)
-  double limitAmount;
+  final double limitAmount;
 
   CategoryLimitModel({required this.category, required this.limitAmount});
+
+  CategoryLimit toDomain() =>
+      CategoryLimit(category: category, limitAmount: limitAmount);
 }

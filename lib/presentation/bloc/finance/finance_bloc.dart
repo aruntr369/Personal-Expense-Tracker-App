@@ -1,6 +1,7 @@
 // Ensure you have flutter_bloc in your pubspec.yaml and run flutter pub get
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/entities/category_limit.dart';
 import '../../../domain/entities/transaction.dart';
 import '../../../domain/repositories/finance_repository.dart';
 import '../../../domain/usecases/add_expense_entry.dart';
@@ -28,12 +29,49 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
     });
     on<AddExpense>((event, emit) async {
       try {
+        // Fetch category limits
+        final categoryLimits = await repository.getExpenseCategoryLimits();
+        final categoryLimit = categoryLimits.firstWhere(
+          (c) => c.category == event.entry.category,
+          orElse:
+              () => CategoryLimit(
+                category: event.entry.category,
+                limitAmount: 0.0,
+              ),
+        );
+
+        // Check if a limit is set (limitAmount > 0)
+        if (categoryLimit.limitAmount > 0) {
+          final spentAmount = await repository.getSpentAmountForCategoryInMonth(
+            event.entry.category,
+            event.entry.date,
+          );
+
+          // Use your property name: limitAmount
+          if ((spentAmount + event.entry.amount) > categoryLimit.limitAmount) {
+            emit(
+              ExpenseLimitWarning(
+                message:
+                    'Adding this expense will exceed your monthly limit for ${categoryLimit.category}.',
+                expenseToAdd: event.entry,
+              ),
+            );
+            return;
+          }
+        }
+
         await addExpenseEntry(event.entry);
         add(LoadEntries());
       } catch (e) {
         emit(FinanceError(e.toString()));
       }
     });
+
+    on<AddExpenseWithConfirmation>((event, emit) async {
+      await addExpenseEntry(event.entry);
+      add(LoadEntries());
+    });
+
     on<LoadEntries>((event, emit) async {
       emit(FinanceLoading());
       try {

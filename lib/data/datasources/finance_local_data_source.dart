@@ -12,7 +12,10 @@ abstract class FinanceLocalDataSource {
 
   Future<List<Transaction>> getTransactions({DateTime? month});
 
-  Future<void> setCategoryLimit(CategoryLimit limit);
-  Future<CategoryLimit?> getCategoryLimit(String category);
-  Future<List<CategoryLimit>> getAllCategoryLimits();
+  Future<void> updateCategoryLimit(CategoryLimit limit);
+  Future<List<CategoryLimit>> getExpenseCategoryLimits();
+  Future<double> getSpentAmountForCategoryInMonth(
+    String categoryName,
+    DateTime month,
+  );
 }

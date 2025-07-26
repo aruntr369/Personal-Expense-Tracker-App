@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../domain/entities/expense_entry.dart';
 import '../../../domain/entities/transaction.dart';
 
 abstract class FinanceState extends Equatable {
@@ -48,4 +49,17 @@ class EntriesLoaded extends FinanceState {
     date,
     sortAscending,
   ];
+}
+
+class ExpenseLimitWarning extends FinanceState {
+  final String message;
+  final ExpenseEntry expenseToAdd;
+
+  const ExpenseLimitWarning({
+    required this.message,
+    required this.expenseToAdd,
+  });
+
+  @override
+  List<Object?> get props => [message, expenseToAdd];
 }

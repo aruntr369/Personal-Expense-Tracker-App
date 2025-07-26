@@ -1,7 +1,6 @@
 import '../entities/category_limit.dart';
 import '../entities/expense_entry.dart';
 import '../entities/income_entry.dart';
-import '../entities/summary_entry.dart';
 import '../entities/transaction.dart';
 
 abstract class FinanceRepository {
@@ -16,15 +15,10 @@ abstract class FinanceRepository {
   Future<List<Transaction>> getTransactions({DateTime? month});
 
   // Category Limit
-  Future<void> setCategoryLimit(CategoryLimit limit);
-  Future<CategoryLimit?> getCategoryLimit(String category);
-  Future<List<CategoryLimit>> getAllCategoryLimits();
-
-  // Summary
-  Future<List<SummaryEntry>> getMonthlySummary(DateTime month);
-
-  // Search, Filter, Sort
-  Future<List<dynamic>> searchEntries(String query);
-  Future<List<dynamic>> filterEntries({String? category, DateTime? date});
-  Future<List<dynamic>> sortEntries({bool ascending});
+  Future<void> updateCategoryLimit(CategoryLimit categoryLimit);
+  Future<List<CategoryLimit>> getExpenseCategoryLimits();
+  Future<double> getSpentAmountForCategoryInMonth(
+    String categoryName,
+    DateTime month,
+  );
 }
