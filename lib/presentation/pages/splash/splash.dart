@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/routes/app_router.gr.dart';
+import '../../../core/utils/constants/assets.gen.dart';
 
 @RoutePage()
 class Splash extends StatefulWidget {
@@ -25,8 +26,7 @@ class _SplashState extends State<Splash> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // body: Center(child: SvgPicture.asset(Assets.images.svg.splashLogo)),
-      body: Center(child: Text("Todo")),
+      body: Center(child: Assets.images.appIcon.image(width: 130)),
     );
   }
 }
