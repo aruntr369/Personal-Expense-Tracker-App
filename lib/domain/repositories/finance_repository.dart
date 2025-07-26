@@ -1,7 +1,8 @@
-import '../entities/income_entry.dart';
-import '../entities/expense_entry.dart';
 import '../entities/category_limit.dart';
+import '../entities/expense_entry.dart';
+import '../entities/income_entry.dart';
 import '../entities/summary_entry.dart';
+import '../entities/transaction.dart';
 
 abstract class FinanceRepository {
   // Income
@@ -11,6 +12,8 @@ abstract class FinanceRepository {
   // Expense
   Future<void> addExpenseEntry(ExpenseEntry entry);
   Future<List<ExpenseEntry>> getExpenseEntries({DateTime? month});
+
+  Future<List<Transaction>> getTransactions({DateTime? month});
 
   // Category Limit
   Future<void> setCategoryLimit(CategoryLimit limit);

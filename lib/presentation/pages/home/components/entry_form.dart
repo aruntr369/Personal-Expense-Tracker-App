@@ -5,7 +5,9 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../domain/entities/expense_entry.dart';
 import '../../../../domain/entities/income_entry.dart';
-import '../../../bloc/finance_bloc.dart';
+import '../../../bloc/finance/finance_bloc.dart';
+import '../../../bloc/finance/finance_event.dart';
+import '../../../bloc/finance/finance_state.dart';
 
 class EntryForm extends StatefulWidget {
   final bool isIncome;
@@ -22,7 +24,6 @@ class _EntryFormState extends State<EntryForm> {
   String? _description;
   DateTime _selectedDate = DateTime.now();
   double? _amount;
-  bool _submitted = false;
 
   final _incomeCategories = ['Salary', 'Bonus', 'Freelance', 'Interest'];
   final _expenseCategories = [
@@ -39,29 +40,39 @@ class _EntryFormState extends State<EntryForm> {
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month, 1);
     final lastDay = DateTime(now.year, now.month + 1, 0);
+
     return BlocListener<FinanceBloc, FinanceState>(
       listener: (context, state) {
-        if (_submitted) {
-          if (state is FinanceLoaded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  widget.isIncome ? 'Income added!' : 'Expense added!',
-                ),
+        // This listener now correctly fires after the BLoC reloads the entries.
+        if (state is EntriesLoaded) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.isIncome
+                    ? 'Income added successfully!'
+                    : 'Expense added successfully!',
               ),
-            );
-            Navigator.of(context).pop();
-          } else if (state is FinanceError) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Error: ${state.message}')));
-            setState(() => _submitted = false);
-          }
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop();
+        } else if (state is FinanceError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${state.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
       },
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16.0,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
@@ -98,8 +109,9 @@ class _EntryFormState extends State<EntryForm> {
                     maxLength: 30,
                     onChanged: (val) => _subCategory = val,
                     validator: (val) {
-                      if (val == null || val.isEmpty)
+                      if (val == null || val.isEmpty) {
                         return 'Enter sub-category';
+                      }
                       if (val.length > 30) return 'Max 30 characters';
                       return null;
                     },
@@ -116,7 +128,9 @@ class _EntryFormState extends State<EntryForm> {
                 const SizedBox(height: 12),
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Amount'),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   validator: (val) {
                     if (val == null || val.isEmpty) return 'Enter amount';
                     final d = double.tryParse(val);
@@ -149,34 +163,62 @@ class _EntryFormState extends State<EntryForm> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      setState(() => _submitted = true);
-                      final uuid = const Uuid();
-                      if (widget.isIncome) {
-                        final entry = IncomeEntry(
-                          id: uuid.v4(),
-                          category: _category!,
-                          description: _description,
-                          date: _selectedDate,
-                          amount: _amount!,
-                        );
-                        context.read<FinanceBloc>().add(AddIncome(entry));
-                      } else {
-                        final entry = ExpenseEntry(
-                          id: uuid.v4(),
-                          category: _category!,
-                          subCategory: _subCategory!,
-                          description: _description,
-                          date: _selectedDate,
-                          amount: _amount!,
-                        );
-                        context.read<FinanceBloc>().add(AddExpense(entry));
-                      }
-                    }
+                BlocBuilder<FinanceBloc, FinanceState>(
+                  builder: (context, state) {
+                    final isLoading = state is FinanceLoading;
+                    return ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            isLoading
+                                ? Colors.grey
+                                : (widget.isIncome ? Colors.green : Colors.red),
+                      ),
+                      onPressed:
+                          isLoading
+                              ? null
+                              : () {
+                                if (_formKey.currentState!.validate()) {
+                                  if (widget.isIncome) {
+                                    final entry = IncomeEntry(
+                                      id: const Uuid().v4(),
+                                      category: _category!,
+                                      description: _description ?? '',
+                                      date: _selectedDate,
+                                      amount: _amount!,
+                                    );
+                                    context.read<FinanceBloc>().add(
+                                      AddIncome(entry),
+                                    );
+                                  } else {
+                                    final entry = ExpenseEntry(
+                                      id: const Uuid().v4(),
+                                      category: _category!,
+                                      subCategory: _subCategory!,
+                                      description: _description ?? '',
+                                      date: _selectedDate,
+                                      amount: _amount!,
+                                    );
+                                    context.read<FinanceBloc>().add(
+                                      AddExpense(entry),
+                                    );
+                                  }
+                                }
+                              },
+                      child:
+                          isLoading
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : Text(
+                                widget.isIncome ? 'Add Income' : 'Add Expense',
+                              ),
+                    );
                   },
-                  child: Text(widget.isIncome ? 'Add Income' : 'Add Expense'),
                 ),
               ],
             ),

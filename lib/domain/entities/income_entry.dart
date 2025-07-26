@@ -1,15 +1,11 @@
-class IncomeEntry {
-  final String id;
-  final String category;
-  final String? description;
-  final DateTime date;
-  final double amount;
+import 'transaction.dart';
 
-  IncomeEntry({
-    required this.id,
-    required this.category,
-    this.description,
-    required this.date,
-    required this.amount,
+class IncomeEntry extends Transaction {
+  const IncomeEntry({
+    required super.id,
+    required super.category,
+    super.description,
+    required super.date,
+    required super.amount,
   });
 }

@@ -1,16 +1,31 @@
 import 'package:hive/hive.dart';
-import '../../domain/entities/income_entry.dart';
-import '../../domain/entities/expense_entry.dart';
+
 import '../../domain/entities/category_limit.dart';
-import '../models/income_entry_model.dart';
-import '../models/expense_entry_model.dart';
+import '../../domain/entities/expense_entry.dart';
+import '../../domain/entities/income_entry.dart';
+import '../../domain/entities/transaction.dart';
 import '../models/category_limit_model.dart';
+import '../models/expense_entry_model.dart';
+import '../models/income_entry_model.dart';
 import 'finance_local_data_source.dart';
 
 class FinanceLocalDataSourceImpl implements FinanceLocalDataSource {
   static const String incomeBoxName = 'incomeBox';
   static const String expenseBoxName = 'expenseBox';
   static const String categoryLimitBoxName = 'categoryLimitBox';
+
+  @override
+  Future<List<Transaction>> getTransactions({DateTime? month}) async {
+    final incomes = await getIncomeEntries();
+
+    final expenses = await getExpenseEntries();
+
+    // Combine and sort
+    final allTransactions = [...incomes, ...expenses];
+    allTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+    return allTransactions;
+  }
 
   @override
   Future<void> addIncomeEntry(IncomeEntry entry) async {

@@ -1,17 +1,17 @@
-class ExpenseEntry {
-  final String id;
-  final String category;
-  final String subCategory;
-  final String? description;
-  final DateTime date;
-  final double amount;
+import 'transaction.dart';
 
-  ExpenseEntry({
-    required this.id,
-    required this.category,
+class ExpenseEntry extends Transaction {
+  final String subCategory;
+
+  const ExpenseEntry({
+    required super.id,
+    required super.category,
     required this.subCategory,
-    this.description,
-    required this.date,
-    required this.amount,
+    super.description,
+    required super.date,
+    required super.amount,
   });
+
+  @override
+  List<Object?> get props => super.props..add(subCategory);
 }

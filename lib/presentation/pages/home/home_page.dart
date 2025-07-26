@@ -1,13 +1,30 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/injections/dependency_injections.dart';
 import '../../../core/routes/app_router.gr.dart';
+import '../../bloc/finance/finance_bloc.dart';
+import '../../bloc/finance/finance_event.dart';
+import '../../bloc/finance/finance_state.dart';
 import 'components/entry_form.dart';
 import 'components/finance_charts.dart';
 
 @RoutePage()
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<FinanceBloc>()..add(LoadEntries()),
+      child: const _HomePageView(),
+    );
+  }
+}
+
+class _HomePageView extends StatelessWidget {
+  const _HomePageView();
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +35,7 @@ class HomePage extends StatelessWidget {
             : now.hour < 18
             ? 'Good afternoon'
             : 'Good evening';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Personal Finance App'),
@@ -51,9 +69,33 @@ class HomePage extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: const FinanceCharts(),
+                  child: BlocBuilder<FinanceBloc, FinanceState>(
+                    builder: (context, state) {
+                      // Handle the loading state
+                      if (state is FinanceLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      // When entries are loaded, pass them to the chart
+                      if (state is EntriesLoaded) {
+                        if (state.entries.isEmpty) {
+                          return const Center(
+                            child: Text("No entries added for this month yet."),
+                          );
+                        }
+                        // Pass the data to your chart widget
+                        return FinanceCharts(entries: state.entries);
+                      }
+                      // Handle the error state
+                      if (state is FinanceError) {
+                        return Center(child: Text('Error: ${state.message}'));
+                      }
+                      // Default or initial state
+                      return const Center(child: Text("Loading chart data..."));
+                    },
+                  ),
                 ),
               ),
+
               const SizedBox(height: 32),
               Card(
                 elevation: 2,
@@ -99,13 +141,8 @@ class HomePage extends StatelessWidget {
                             ),
                             isScrollControlled: true,
                             builder:
-                                (_) => Padding(
-                                  padding: EdgeInsets.only(
-                                    bottom:
-                                        MediaQuery.of(
-                                          context,
-                                        ).viewInsets.bottom,
-                                  ),
+                                (_) => BlocProvider.value(
+                                  value: BlocProvider.of<FinanceBloc>(context),
                                   child: EntryForm(isIncome: true),
                                 ),
                           );
@@ -134,13 +171,8 @@ class HomePage extends StatelessWidget {
                             ),
                             isScrollControlled: true,
                             builder:
-                                (_) => Padding(
-                                  padding: EdgeInsets.only(
-                                    bottom:
-                                        MediaQuery.of(
-                                          context,
-                                        ).viewInsets.bottom,
-                                  ),
+                                (_) => BlocProvider.value(
+                                  value: BlocProvider.of<FinanceBloc>(context),
                                   child: EntryForm(isIncome: false),
                                 ),
                           );
@@ -160,7 +192,7 @@ class HomePage extends StatelessWidget {
                           ),
                         ),
                         onPressed: () {
-                          context.router.push(SummaryRoute());
+                          context.router.push(const SummaryRoute());
                         },
                       ),
                     ],

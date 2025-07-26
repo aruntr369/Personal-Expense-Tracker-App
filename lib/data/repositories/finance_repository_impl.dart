@@ -1,7 +1,8 @@
-import '../../domain/entities/income_entry.dart';
-import '../../domain/entities/expense_entry.dart';
 import '../../domain/entities/category_limit.dart';
+import '../../domain/entities/expense_entry.dart';
+import '../../domain/entities/income_entry.dart';
 import '../../domain/entities/summary_entry.dart';
+import '../../domain/entities/transaction.dart';
 import '../../domain/repositories/finance_repository.dart';
 import '../datasources/finance_local_data_source.dart';
 
@@ -10,25 +11,37 @@ class FinanceRepositoryImpl implements FinanceRepository {
   FinanceRepositoryImpl(this.localDataSource);
 
   @override
-  Future<void> addIncomeEntry(IncomeEntry entry) => localDataSource.addIncomeEntry(entry);
+  Future<List<Transaction>> getTransactions({DateTime? month}) {
+    return localDataSource.getTransactions(month: month);
+  }
 
   @override
-  Future<List<IncomeEntry>> getIncomeEntries({DateTime? month}) => localDataSource.getIncomeEntries(month: month);
+  Future<void> addIncomeEntry(IncomeEntry entry) =>
+      localDataSource.addIncomeEntry(entry);
 
   @override
-  Future<void> addExpenseEntry(ExpenseEntry entry) => localDataSource.addExpenseEntry(entry);
+  Future<List<IncomeEntry>> getIncomeEntries({DateTime? month}) =>
+      localDataSource.getIncomeEntries(month: month);
 
   @override
-  Future<List<ExpenseEntry>> getExpenseEntries({DateTime? month}) => localDataSource.getExpenseEntries(month: month);
+  Future<void> addExpenseEntry(ExpenseEntry entry) =>
+      localDataSource.addExpenseEntry(entry);
 
   @override
-  Future<void> setCategoryLimit(CategoryLimit limit) => localDataSource.setCategoryLimit(limit);
+  Future<List<ExpenseEntry>> getExpenseEntries({DateTime? month}) =>
+      localDataSource.getExpenseEntries(month: month);
 
   @override
-  Future<CategoryLimit?> getCategoryLimit(String category) => localDataSource.getCategoryLimit(category);
+  Future<void> setCategoryLimit(CategoryLimit limit) =>
+      localDataSource.setCategoryLimit(limit);
 
   @override
-  Future<List<CategoryLimit>> getAllCategoryLimits() => localDataSource.getAllCategoryLimits();
+  Future<CategoryLimit?> getCategoryLimit(String category) =>
+      localDataSource.getCategoryLimit(category);
+
+  @override
+  Future<List<CategoryLimit>> getAllCategoryLimits() =>
+      localDataSource.getAllCategoryLimits();
 
   @override
   Future<List<SummaryEntry>> getMonthlySummary(DateTime month) async {
@@ -53,4 +66,4 @@ class FinanceRepositoryImpl implements FinanceRepository {
     // Implement sort logic
     throw UnimplementedError();
   }
-} 
+}

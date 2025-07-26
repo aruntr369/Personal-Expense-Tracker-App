@@ -13,7 +13,7 @@ import 'package:personal_finance_app/presentation/pages/home/home_page.dart'
     as _i1;
 import 'package:personal_finance_app/presentation/pages/splash/splash.dart'
     as _i2;
-import 'package:personal_finance_app/presentation/pages/summary_page.dart'
+import 'package:personal_finance_app/presentation/pages/summary/summary_page.dart'
     as _i3;
 
 /// generated route for
