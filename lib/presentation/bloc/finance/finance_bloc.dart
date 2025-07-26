@@ -1,6 +1,7 @@
 // Ensure you have flutter_bloc in your pubspec.yaml and run flutter pub get
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/entities/transaction.dart';
 import '../../../domain/repositories/finance_repository.dart';
 import '../../../domain/usecases/add_expense_entry.dart';
 import '../../../domain/usecases/add_income_entry.dart';
@@ -39,9 +40,71 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
         final transactions = await repository.getTransactions(
           month: event.month,
         );
-        emit(EntriesLoaded(transactions));
+        transactions.sort((a, b) => b.date.compareTo(a.date));
+        emit(
+          EntriesLoaded(
+            allEntries: transactions,
+            filteredEntries: transactions,
+          ),
+        );
       } catch (e) {
         emit(FinanceError(e.toString()));
+      }
+    });
+
+    on<FilterAndSortEntries>((event, emit) {
+      final currentState = state;
+      if (currentState is EntriesLoaded) {
+        List<Transaction> filtered = List.from(currentState.allEntries);
+
+        // Search by description
+        if (event.searchTerm != null && event.searchTerm!.isNotEmpty) {
+          filtered =
+              filtered
+                  .where(
+                    (e) => (e.description ?? '').toLowerCase().contains(
+                      event.searchTerm!.toLowerCase(),
+                    ),
+                  )
+                  .toList();
+        }
+
+        // Filter by category
+        if (event.category != null && event.category!.isNotEmpty) {
+          filtered =
+              filtered.where((e) => e.category == event.category).toList();
+        }
+
+        // Filter by date
+        if (event.date != null) {
+          filtered =
+              filtered
+                  .where(
+                    (e) =>
+                        e.date.year == event.date!.year &&
+                        e.date.month == event.date!.month &&
+                        e.date.day == event.date!.day,
+                  )
+                  .toList();
+        }
+
+        // Sort by date
+        final sortAsc = event.sortAscending ?? currentState.sortAscending;
+        filtered.sort(
+          (a, b) =>
+              sortAsc ? a.date.compareTo(b.date) : b.date.compareTo(a.date),
+        );
+
+        emit(
+          EntriesLoaded(
+            allEntries: currentState.allEntries,
+            filteredEntries: filtered,
+            searchTerm: event.searchTerm,
+            category: event.category,
+            date: event.date,
+            sortAscending: sortAsc,
+          ),
+        );
       }
     });
   }

@@ -17,3 +17,17 @@ class LoadEntries extends FinanceEvent {
   final DateTime? month;
   LoadEntries({this.month});
 }
+
+class FilterAndSortEntries extends FinanceEvent {
+  final String? searchTerm;
+  final String? category;
+  final DateTime? date;
+  final bool? sortAscending;
+
+  FilterAndSortEntries({
+    this.searchTerm,
+    this.category,
+    this.date,
+    this.sortAscending,
+  });
+}

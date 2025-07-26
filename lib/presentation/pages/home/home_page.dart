@@ -1,5 +1,4 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -12,6 +11,7 @@ import '../../../domain/entities/transaction.dart';
 import '../../bloc/finance/finance_bloc.dart';
 import '../../bloc/finance/finance_event.dart';
 import '../../bloc/finance/finance_state.dart';
+import '../../widgets/transaction.dart';
 import 'components/entry_form.dart';
 import 'components/finance_charts.dart';
 
@@ -80,11 +80,11 @@ class _HomePageView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('Home'),
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.list_alt_outlined),
+            icon: const Icon(Icons.format_list_bulleted_outlined),
             tooltip: 'View Full Summary',
             onPressed: () => context.router.push(const SummaryRoute()),
           ),
@@ -108,7 +108,7 @@ class _HomePageView extends StatelessWidget {
               return Center(child: Text('Error: ${state.message}'));
             }
             if (state is EntriesLoaded) {
-              return _DashboardContent(entries: state.entries);
+              return _DashboardContent(entries: state.allEntries);
             }
             return const Center(child: Text("Loading data..."));
           },
@@ -171,6 +171,11 @@ class _DashboardContent extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _RecentTransactionsList(entries: entries),
+            if (entries.isNotEmpty)
+              TextButton(
+                onPressed: () => context.router.push(const SummaryRoute()),
+                child: const Text('View All Transactions'),
+              ),
             const SizedBox(height: 80), // Add padding for the FAB
           ],
         ),
@@ -312,45 +317,7 @@ class _RecentTransactionsList extends StatelessWidget {
           index,
         ) {
           final entry = entries[index];
-          final isIncome = entry is IncomeEntry;
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: (isIncome ? Colors.green : Colors.red)
-                  .withOpacity(0.1),
-              child: Icon(
-                isIncome ? CupertinoIcons.arrow_up : CupertinoIcons.arrow_down,
-                color: isIncome ? Colors.green : Colors.red,
-                size: 20,
-              ),
-            ),
-            title: Text(
-              entry.category,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(
-              entry.description ?? 'No description',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${isIncome ? '+' : '-'}${NumberFormat.currency(locale: 'en_IN', symbol: '₹').format(entry.amount)}',
-                  style: TextStyle(
-                    color: isIncome ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  DateFormat('d MMM, yyyy').format(entry.date),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          );
+          return TransactionListItem(transaction: entry);
         }),
       ),
     );
