@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../domain/entities/category_limit.dart';
 import '../../../domain/entities/expense_entry.dart';
 import '../../../domain/entities/transaction.dart';
 
@@ -26,6 +27,8 @@ class EntriesLoaded extends FinanceState {
   final List<Transaction> allEntries;
   final List<Transaction> filteredEntries;
 
+  final List<CategoryLimit> exceededLimits;
+
   final String? searchTerm;
   final String? category;
   final DateTime? date;
@@ -38,6 +41,7 @@ class EntriesLoaded extends FinanceState {
     this.category,
     this.date,
     this.sortAscending = false,
+    this.exceededLimits = const [],
   });
 
   @override
@@ -48,6 +52,7 @@ class EntriesLoaded extends FinanceState {
     category,
     date,
     sortAscending,
+    exceededLimits,
   ];
 }
 

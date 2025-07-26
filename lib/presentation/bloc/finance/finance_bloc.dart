@@ -2,6 +2,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/entities/category_limit.dart';
+import '../../../domain/entities/expense_entry.dart';
 import '../../../domain/entities/transaction.dart';
 import '../../../domain/repositories/finance_repository.dart';
 import '../../../domain/usecases/add_expense_entry.dart';
@@ -78,11 +79,30 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
         final transactions = await repository.getTransactions(
           month: event.month,
         );
+        final categoryLimits = await repository.getExpenseCategoryLimits();
+
+        final List<CategoryLimit> exceededLimits = [];
+        for (var limit in categoryLimits) {
+          // Only check categories that have a limit set
+          if (limit.limitAmount > 0) {
+            // Calculate total spent for this category
+            double totalSpent = transactions
+                .whereType<ExpenseEntry>()
+                .where((e) => e.category == limit.category)
+                .fold(0.0, (sum, item) => sum + item.amount);
+
+            if (totalSpent > limit.limitAmount) {
+              exceededLimits.add(limit);
+            }
+          }
+        }
+
         transactions.sort((a, b) => b.date.compareTo(a.date));
         emit(
           EntriesLoaded(
             allEntries: transactions,
             filteredEntries: transactions,
+            exceededLimits: exceededLimits,
           ),
         );
       } catch (e) {

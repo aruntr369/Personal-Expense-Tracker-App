@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/injections/dependency_injections.dart';
 import '../../../core/routes/app_router.gr.dart';
+import '../../../domain/entities/category_limit.dart';
 import '../../../domain/entities/expense_entry.dart';
 import '../../../domain/entities/income_entry.dart';
 import '../../../domain/entities/transaction.dart';
@@ -12,6 +13,7 @@ import '../../bloc/finance/finance_bloc.dart';
 import '../../bloc/finance/finance_event.dart';
 import '../../bloc/finance/finance_state.dart';
 import '../../widgets/transaction.dart';
+import 'components/day_summary.dart';
 import 'components/entry_form.dart';
 import 'components/finance_charts.dart';
 
@@ -28,9 +30,73 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class _HomePageView extends StatelessWidget {
+class _HomePageView extends StatefulWidget {
   const _HomePageView();
 
+  @override
+  State<_HomePageView> createState() => _HomePageViewState();
+}
+
+class _HomePageViewState extends State<_HomePageView> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'FinFlow',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Manage Categories',
+            onPressed: () async {
+              final financeBloc = context.read<FinanceBloc>();
+              final router = context.router;
+              await router.push(const CategoryManagementRoute());
+              if (!mounted) return;
+              financeBloc.add(LoadEntries());
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.format_list_bulleted_outlined),
+            tooltip: 'View Full Summary',
+            onPressed: () => context.router.push(const SummaryRoute()),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddActionSheet(context),
+        icon: const Icon(Icons.add),
+        label: const Text('New Entry'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<FinanceBloc>().add(LoadEntries());
+        },
+        child: BlocBuilder<FinanceBloc, FinanceState>(
+          builder: (context, state) {
+            if (state is FinanceLoading && state is! EntriesLoaded) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (state is FinanceError) {
+              return Center(child: Text('Error: ${state.message}'));
+            }
+            if (state is EntriesLoaded) {
+              return _DashboardContent(
+                entries: state.allEntries,
+                exceededLimits: state.exceededLimits,
+              );
+            }
+            return const Center(child: Text("Loading data..."));
+          },
+        ),
+      ),
+    );
+  }
+
+  // Helper methods from previous version (_showAddEntrySheet, etc.) go here
   void _showAddEntrySheet(BuildContext context, {required bool isIncome}) {
     showModalBottomSheet(
       context: context,
@@ -75,60 +141,16 @@ class _HomePageView extends StatelessWidget {
       },
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Manage Categories',
-            onPressed:
-                () => context.router.push(const CategoryManagementRoute()),
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.format_list_bulleted_outlined),
-            tooltip: 'View Full Summary',
-            onPressed: () => context.router.push(const SummaryRoute()),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddActionSheet(context),
-        icon: const Icon(Icons.add),
-        label: const Text('New Entry'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          context.read<FinanceBloc>().add(LoadEntries());
-        },
-        child: BlocBuilder<FinanceBloc, FinanceState>(
-          builder: (context, state) {
-            if (state is FinanceLoading && state is! EntriesLoaded) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state is FinanceError) {
-              return Center(child: Text('Error: ${state.message}'));
-            }
-            if (state is EntriesLoaded) {
-              return _DashboardContent(entries: state.allEntries);
-            }
-            return const Center(child: Text("Loading data..."));
-          },
-        ),
-      ),
-    );
-  }
 }
 
 class _DashboardContent extends StatelessWidget {
   final List<Transaction> entries;
+  final List<CategoryLimit> exceededLimits;
 
-  const _DashboardContent({required this.entries});
+  const _DashboardContent({
+    required this.entries,
+    required this.exceededLimits,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -154,12 +176,9 @@ class _DashboardContent extends StatelessWidget {
               expenses: totalExpenses,
               balance: balance,
             ),
+            if (exceededLimits.isNotEmpty)
+              _LimitWarningCard(exceededLimits: exceededLimits),
             const SizedBox(height: 24),
-            const Text(
-              "Spending Overview",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
             Card(
               elevation: 0,
               color: Theme.of(context).colorScheme.surfaceContainerLowest,
@@ -171,19 +190,24 @@ class _DashboardContent extends StatelessWidget {
                 child: FinanceCharts(entries: entries),
               ),
             ),
+
+            const SizedBox(height: 24),
+            DailyTransactionsView(entries: entries),
+
             const SizedBox(height: 24),
             const Text(
               "Recent Transactions",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
+
             _RecentTransactionsList(entries: entries),
             if (entries.isNotEmpty)
               TextButton(
                 onPressed: () => context.router.push(const SummaryRoute()),
                 child: const Text('View All Transactions'),
               ),
-            const SizedBox(height: 80), // Add padding for the FAB
+            const SizedBox(height: 80),
           ],
         ),
       ),
@@ -204,41 +228,74 @@ class _FinancialOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+
     return Card(
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerLowest,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
-        child: Row(
+      elevation: 4,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        padding: const EdgeInsets.all(20.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.deepPurple.shade400,
+              Colors.purple.shade500,
+              Colors.pink.shade400,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Each item is wrapped in Expanded to share space equally
-            Expanded(
-              child: _InfoTile(
-                title: 'Income',
-                amount: income,
-                color: Colors.green,
-                icon: Icons.arrow_upward,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Total Balance',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              currencyFormat.format(balance),
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            // A vertical divider for better separation
-            const SizedBox(height: 40, child: VerticalDivider()),
-            Expanded(
-              child: _InfoTile(
-                title: 'Expenses',
-                amount: expenses,
-                color: Colors.red,
-                icon: Icons.arrow_downward,
-              ),
-            ),
-            const SizedBox(height: 40, child: VerticalDivider()),
-            Expanded(
-              child: _InfoTile(
-                title: 'Balance',
-                amount: balance,
-                color: Theme.of(context).colorScheme.onSurface,
-                icon: Icons.account_balance_wallet_outlined,
-              ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                // ✅ Change: Wrap each tile in Expanded to share space.
+                Expanded(
+                  child: _IncomeExpenseTile(
+                    icon: Icons.arrow_downward_rounded,
+                    label: 'Income',
+                    amount: income,
+                    color: Colors.greenAccent,
+                  ),
+                ),
+                const SizedBox(width: 16), // Add spacing between tiles
+                Expanded(
+                  child: _IncomeExpenseTile(
+                    icon: Icons.arrow_upward_rounded,
+                    label: 'Expenses',
+                    amount: expenses,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -247,51 +304,111 @@ class _FinancialOverviewCard extends StatelessWidget {
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  final String title;
+class _IncomeExpenseTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
   final double amount;
   final Color color;
-  final IconData icon;
 
-  const _InfoTile({
-    required this.title,
+  const _IncomeExpenseTile({
+    required this.icon,
+    required this.label,
     required this.amount,
     required this.color,
-    required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
+
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: Colors.white.withValues(alpha: 0.15),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: color, size: 16),
-              const SizedBox(width: 4),
-              Text(title, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                label,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+              ),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  currencyFormat.format(amount),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          // FittedBox scales down the text to prevent overflow
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              NumberFormat.currency(
-                locale: 'en_IN',
-                symbol: '₹',
-              ).format(amount),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: color,
-              ),
-              maxLines: 1,
+        ),
+      ],
+    );
+  }
+}
+
+class _LimitWarningCard extends StatelessWidget {
+  final List<CategoryLimit> exceededLimits;
+
+  const _LimitWarningCard({required this.exceededLimits});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.amber.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.amber.shade700, width: 1.5),
+      ),
+      margin: const EdgeInsets.only(top: 24),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                const SizedBox(width: 12),
+                Text(
+                  "Spending Limit Exceeded",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.amber.shade900,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              "You've gone over your budget for the following categories this month:",
+              style: TextStyle(color: Colors.amber.shade800),
+            ),
+            const SizedBox(height: 8),
+            ...exceededLimits.map(
+              (limit) => Text(
+                "• ${limit.category}",
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.amber.shade900,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

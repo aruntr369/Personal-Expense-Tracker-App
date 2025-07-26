@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../domain/entities/expense_entry.dart';
+import '../../../../domain/entities/income_entry.dart';
 import '../../../../domain/entities/transaction.dart';
 
 enum ChartTimeframe { monthly, weekly, daily }
@@ -32,13 +33,18 @@ class _FinanceChartsState extends State<FinanceCharts> {
 
   @override
   Widget build(BuildContext context) {
-    final allExpenses = widget.entries.whereType<ExpenseEntry>().toList();
-    final filteredPieExpenses = _getFilteredExpenses(allExpenses);
-    final categoryTotals = _calculateCategoryTotals(filteredPieExpenses);
+    final filteredPieExpenses = _getFilteredExpenses();
 
     return Column(
       children: [
-        // --- Pie Chart Section ---
+        const Text(
+          'Weekly Overview',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        _buildMonthlyOverviewBarChart(),
+        const SizedBox(height: 32),
+
         const Text(
           'Spending by Category',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -66,56 +72,156 @@ class _FinanceChartsState extends State<FinanceCharts> {
           ),
         ),
         const SizedBox(height: 24),
-        if (filteredPieExpenses.isEmpty)
-          _buildEmptyState('No expense data for this period.')
-        else
-          Column(
-            children: [
-              SizedBox(
-                height: 220,
-                child: PieChart(
-                  PieChartData(
-                    pieTouchData: PieTouchData(
-                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                        setState(() {
-                          if (!event.isInterestedForInteractions ||
-                              pieTouchResponse == null ||
-                              pieTouchResponse.touchedSection == null) {
-                            _touchedIndex = -1;
-                            return;
-                          }
-                          _touchedIndex =
-                              pieTouchResponse
-                                  .touchedSection!
-                                  .touchedSectionIndex;
-                        });
-                      },
-                    ),
-                    sectionsSpace: 4,
-                    centerSpaceRadius: 80,
-                    sections: _generatePieSections(categoryTotals),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildLegend(categoryTotals),
-            ],
-          ),
-
-        const SizedBox(height: 32),
-
-        // --- Weekly Bar Chart Section ---
-        const Text(
-          'Weekly Spending Pattern',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        _buildWeeklyBarChart(allExpenses),
+        _buildPieChart(filteredPieExpenses),
       ],
     );
   }
 
-  List<ExpenseEntry> _getFilteredExpenses(List<ExpenseEntry> allExpenses) {
+  Widget _buildMonthlyOverviewBarChart() {
+    final now = DateTime.now();
+    final monthlyTransactions =
+        widget.entries
+            .where((e) => e.date.year == now.year && e.date.month == now.month)
+            .toList();
+
+    if (monthlyTransactions.isEmpty) {
+      return _buildEmptyState('No data for this month\'s overview.');
+    }
+
+    final weeklyIncomeTotals = List<double>.filled(5, 0.0);
+    final weeklyExpenseTotals = List<double>.filled(5, 0.0);
+
+    for (var transaction in monthlyTransactions) {
+      final weekIndex = _getWeekOfMonth(transaction.date);
+      if (transaction is IncomeEntry) {
+        weeklyIncomeTotals[weekIndex] += transaction.amount;
+      } else if (transaction is ExpenseEntry) {
+        weeklyExpenseTotals[weekIndex] += transaction.amount;
+      }
+    }
+
+    final double maxIncome =
+        weeklyIncomeTotals.isNotEmpty
+            ? weeklyIncomeTotals.reduce((a, b) => a > b ? a : b)
+            : 0;
+    final double maxExpense =
+        weeklyExpenseTotals.isNotEmpty
+            ? weeklyExpenseTotals.reduce((a, b) => a > b ? a : b)
+            : 0;
+    final double highestValue = maxIncome > maxExpense ? maxIncome : maxExpense;
+    final double maxY = highestValue == 0 ? 1000 : highestValue * 1.2;
+
+    return SizedBox(
+      height: 220,
+      child: BarChart(
+        BarChartData(
+          maxY: maxY,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              tooltipBgColor: Colors.grey.shade800,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                String label =
+                    rod.color == Colors.deepPurple.shade400
+                        ? 'Income'
+                        : 'Expense';
+                return BarTooltipItem(
+                  '${label}\n',
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '₹${rod.toY.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Colors.yellow),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 56,
+                interval: maxY / 5,
+                getTitlesWidget: (value, meta) {
+                  final formatter = NumberFormat.compactCurrency(
+                    locale: 'en_IN',
+                    symbol: '₹',
+                    decimalDigits: 1,
+                  );
+
+                  return Text(formatter.format(value));
+                },
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    'Week ${value.toInt() + 1}',
+                    style: const TextStyle(fontSize: 12),
+                  );
+                },
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            // Use the same interval for the grid lines
+            horizontalInterval: maxY / 4,
+          ),
+          barGroups: List.generate(4, (i) {
+            return BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: weeklyIncomeTotals[i],
+                  color: Colors.deepPurple.shade400,
+                  width: 15,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(4),
+                  ),
+                ),
+                BarChartRodData(
+                  toY: weeklyExpenseTotals[i],
+                  color: Colors.orange.shade400,
+                  width: 15,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(4),
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  int _getWeekOfMonth(DateTime date) {
+    final firstDayOfMonth = DateTime(date.year, date.month, 1);
+    final dayOfWeek = firstDayOfMonth.weekday;
+    final dayOfMonth = date.day;
+    return ((dayOfMonth + dayOfWeek - 2) / 7).floor();
+  }
+
+  List<ExpenseEntry> _getFilteredExpenses() {
+    final allExpenses = widget.entries.whereType<ExpenseEntry>().toList();
     final now = DateTime.now();
     switch (_selectedTimeframe) {
       case ChartTimeframe.monthly:
@@ -146,124 +252,49 @@ class _FinanceChartsState extends State<FinanceCharts> {
     }
   }
 
+  Widget _buildPieChart(List<ExpenseEntry> expenses) {
+    if (expenses.isEmpty) {
+      return _buildEmptyState('No expense data for this period.');
+    }
+    final categoryTotals = _calculateCategoryTotals(expenses);
+    return Column(
+      children: [
+        SizedBox(
+          height: 220,
+          child: PieChart(
+            PieChartData(
+              pieTouchData: PieTouchData(
+                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                  setState(() {
+                    if (!event.isInterestedForInteractions ||
+                        pieTouchResponse == null ||
+                        pieTouchResponse.touchedSection == null) {
+                      _touchedIndex = -1;
+                      return;
+                    }
+                    _touchedIndex =
+                        pieTouchResponse.touchedSection!.touchedSectionIndex;
+                  });
+                },
+              ),
+              sectionsSpace: 4,
+              centerSpaceRadius: 80,
+              sections: _generatePieSections(categoryTotals),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _buildLegend(categoryTotals),
+      ],
+    );
+  }
+
   Map<String, double> _calculateCategoryTotals(List<ExpenseEntry> expenses) {
     final categoryTotals = <String, double>{};
     for (var e in expenses) {
       categoryTotals[e.category] = (categoryTotals[e.category] ?? 0) + e.amount;
     }
     return categoryTotals;
-  }
-
-  Widget _buildWeeklyBarChart(List<ExpenseEntry> allExpenses) {
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 6));
-    final weeklyExpenses =
-        allExpenses
-            .where(
-              (e) =>
-                  e.date.isAfter(
-                    startOfWeek.subtract(const Duration(days: 1)),
-                  ) &&
-                  e.date.isBefore(endOfWeek.add(const Duration(days: 1))),
-            )
-            .toList();
-
-    if (weeklyExpenses.isEmpty) {
-      return _buildEmptyState('No expense data for this week.');
-    }
-
-    final weeklyTotals = List<double>.filled(7, 0);
-    for (var e in weeklyExpenses) {
-      weeklyTotals[e.date.weekday - 1] += e.amount;
-    }
-
-    return SizedBox(
-      height: 200,
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          maxY:
-              (weeklyTotals.isNotEmpty
-                  ? weeklyTotals.reduce((a, b) => a > b ? a : b) * 1.2
-                  : 100),
-          barTouchData: BarTouchData(
-            touchTooltipData: BarTouchTooltipData(
-              tooltipBgColor: Colors.blueGrey,
-              getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                final day = DateFormat(
-                  'E',
-                ).format(DateTime(2025, 1, 6 + group.x));
-                return BarTooltipItem(
-                  '$day\n',
-                  const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: '₹${rod.toY.toStringAsFixed(0)}',
-                      style: const TextStyle(color: Colors.yellow),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          titlesData: FlTitlesData(
-            show: true,
-            leftTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget:
-                    (value, meta) => Text(
-                      DateFormat('E')
-                          .format(DateTime(2025, 1, 6 + value.toInt()))
-                          .substring(0, 1),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-              ),
-            ),
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          barGroups: List.generate(weeklyTotals.length, (i) {
-            return BarChartGroupData(
-              x: i,
-              barRods: [
-                BarChartRodData(
-                  toY: weeklyTotals[i],
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                      Theme.of(context).colorScheme.primary,
-                    ],
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                  ),
-                  width: 16,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(4),
-                  ),
-                ),
-              ],
-            );
-          }),
-        ),
-      ),
-    );
   }
 
   List<PieChartSectionData> _generatePieSections(
@@ -274,13 +305,11 @@ class _FinanceChartsState extends State<FinanceCharts> {
       (sum, element) => sum + element,
     );
     if (totalValue == 0) return [];
-
     int i = 0;
     return categoryTotals.entries.map((entry) {
       final isTouched = (i == _touchedIndex);
       final percentage = (entry.value / totalValue) * 100;
       final title = percentage > 7 ? '${percentage.toStringAsFixed(0)}%' : '';
-
       final section = PieChartSectionData(
         color: _chartColors[i % _chartColors.length],
         value: entry.value,
@@ -295,10 +324,12 @@ class _FinanceChartsState extends State<FinanceCharts> {
         borderSide:
             isTouched
                 ? BorderSide(
-                  color: _chartColors[i % _chartColors.length].withOpacity(0.7),
+                  color: _chartColors[i % _chartColors.length].withValues(
+                    alpha: 0.7,
+                  ),
                   width: 6,
                 )
-                : BorderSide(color: Colors.black.withOpacity(0)),
+                : BorderSide(color: Colors.black.withValues(alpha: 0)),
       );
       i++;
       return section;
