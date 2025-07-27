@@ -78,19 +78,19 @@ flutter run
 📂 Project Structure
 The project follows the principles of Clean Architecture, separating the code into three distinct layers:
 
-lib/
-├── core/                   # Core utilities, dependency injection, routing
+lib/ 
+├── core/                   # Core utilities, dependency injection, routing 
 ├── data/                   # Data layer (repositories, data sources, models)
-│   ├── datasources/
-│   ├── models/
-│   └── repositories/
+│   ├── datasources/ 
+│   ├── models/ 
+│   └── repositories/ 
 ├── domain/                 # Domain layer (entities, use cases, repository contracts)
-│   ├── entities/
-│   ├── repositories/
-│   └── usecases/
+│   ├── entities/ 
+│   ├── repositories/ 
+│   └── usecases/ 
 └── presentation/           # Presentation layer (UI, BLoCs)
-├── bloc/
-├── pages/
+├── bloc/ 
+├── pages/ 
 └── widgets/
 
 Domain Layer: Contains the core business logic and entities of the app. It is completely independent of any frameworks.

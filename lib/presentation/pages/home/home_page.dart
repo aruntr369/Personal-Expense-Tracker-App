@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:personal_finance_app/core/styles/app_colors.dart';
 
 import '../../../core/injections/dependency_injections.dart';
 import '../../../core/routes/app_router.gr.dart';
@@ -78,9 +79,18 @@ class _HomePageViewState extends State<_HomePageView> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Palette.primary,
         onPressed: () => _showAddActionSheet(context),
-        icon: const Icon(Icons.add),
-        label: const Text('New Entry'),
+
+        icon: const Icon(Icons.add, color: Palette.white),
+        label: const Text(
+          'New Entry',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Palette.white,
+            fontSize: 16,
+          ),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -130,16 +140,30 @@ class _HomePageViewState extends State<_HomePageView> {
           child: Wrap(
             children: <Widget>[
               ListTile(
-                leading: const Icon(Icons.arrow_upward, color: Colors.green),
-                title: const Text('Add Income'),
+                leading: const Icon(
+                  Icons.arrow_upward,
+                  color: Palette.green,
+                  size: 30,
+                ),
+                title: const Text(
+                  'Add Income',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _showAddEntrySheet(context, isIncome: true);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.arrow_downward, color: Colors.red),
-                title: const Text('Add Expense'),
+                leading: const Icon(
+                  Icons.arrow_downward,
+                  color: Palette.red,
+                  size: 30,
+                ),
+                title: const Text(
+                  'Add Expense',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _showAddEntrySheet(context, isIncome: false);

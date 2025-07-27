@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:personal_finance_app/core/styles/app_colors.dart';
 
 import '../../../../domain/entities/category_limit.dart';
 
@@ -14,7 +15,7 @@ class LimitWarningCard extends StatelessWidget {
       color: Colors.amber.shade50,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.amber.shade700, width: 1.5),
+        side: BorderSide(color: Palette.secondary, width: 1.5),
       ),
       margin: const EdgeInsets.only(top: 24),
       child: Padding(
@@ -24,14 +25,14 @@ class LimitWarningCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                Icon(Icons.warning_amber_rounded, color: Palette.secondary),
                 const SizedBox(width: 12),
                 Text(
                   "Spending Limit Exceeded",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Colors.amber.shade900,
+                    color: Palette.secondary,
                   ),
                 ),
               ],
@@ -39,7 +40,7 @@ class LimitWarningCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               "You've gone over budget for:",
-              style: TextStyle(color: Colors.amber.shade800),
+              style: TextStyle(color: Palette.secondary),
             ),
             const SizedBox(height: 8),
             ...exceededLimits.map(
@@ -47,7 +48,7 @@ class LimitWarningCard extends StatelessWidget {
                 "• ${limit.category}",
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  color: Colors.amber.shade900,
+                  color: Palette.secondary,
                 ),
               ),
             ),

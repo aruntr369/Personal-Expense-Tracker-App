@@ -3,12 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/styles/app_colors.dart';
 import '../../../../core/utils/constants/app_constants.dart';
 import '../../../../domain/entities/expense_entry.dart';
 import '../../../../domain/entities/income_entry.dart';
 import '../../../bloc/finance/finance_bloc.dart';
 import '../../../bloc/finance/finance_event.dart';
 import '../../../bloc/finance/finance_state.dart';
+import '../../../widgets/custom_button.dart';
+import '../../../widgets/form/custom_drop_down_field.dart';
+import '../../../widgets/form/custom_text_form_field.dart';
 
 class EntryForm extends StatefulWidget {
   final bool isIncome;
@@ -105,24 +109,22 @@ class _EntryFormState extends State<EntryForm> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'Category'),
+                CustomDropdownSearch<String>(
+                  showStar: true,
+                  titleText: 'Category',
                   items:
-                      (widget.isIncome ? _incomeCategories : _expenseCategories)
-                          .map(
-                            (cat) =>
-                                DropdownMenuItem(value: cat, child: Text(cat)),
-                          )
-                          .toList(),
+                      (widget.isIncome
+                          ? _incomeCategories
+                          : _expenseCategories),
+                  itemAsString: (value) => value,
                   onChanged: (val) => setState(() => _category = val),
                   validator: (val) => val == null ? 'Select a category' : null,
                 ),
                 if (!widget.isIncome) ...[
                   const SizedBox(height: 12),
-                  TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'Sub-Category',
-                    ),
+                  CustomTextFormField(
+                    mandatory: true,
+                    label: 'Sub-Category',
                     maxLength: 30,
                     onChanged: (val) => _subCategory = val,
                     validator: (val) {
@@ -135,16 +137,15 @@ class _EntryFormState extends State<EntryForm> {
                   ),
                 ],
                 const SizedBox(height: 12),
-                TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optional)',
-                  ),
+                CustomTextFormField(
+                  label: "Description (optional)",
                   maxLength: 256,
                   onChanged: (val) => _description = val,
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  decoration: const InputDecoration(labelText: 'Amount'),
+                CustomTextFormField(
+                  mandatory: true,
+                  label: 'Amount',
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -183,13 +184,10 @@ class _EntryFormState extends State<EntryForm> {
                 BlocBuilder<FinanceBloc, FinanceState>(
                   builder: (context, state) {
                     final isLoading = state is FinanceLoading;
-                    return ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isLoading
-                                ? Colors.grey
-                                : (widget.isIncome ? Colors.green : Colors.red),
-                      ),
+
+                    return CustomSubmitButton(
+                      color: (widget.isIncome ? Palette.green : Palette.red),
+                      isBusy: isLoading,
                       onPressed:
                           isLoading
                               ? null
@@ -221,19 +219,8 @@ class _EntryFormState extends State<EntryForm> {
                                   }
                                 }
                               },
-                      child:
-                          isLoading
-                              ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                              : Text(
-                                widget.isIncome ? 'Add Income' : 'Add Expense',
-                              ),
+                      buttonTitle:
+                          widget.isIncome ? 'Add Income' : 'Add Expense',
                     );
                   },
                 ),

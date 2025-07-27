@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 
 abstract class Palette {
   static const Color primary = Colors.deepPurple;
-  static const Color secondary = Color(0xFFFF6B00);
+  static const Color secondary = Color(0xFFFF8B3C);
   static const Color scaffoldBackgroundColor = Color(0xFFFFFFFF);
   static const Color grey = Color(0xFFE4E4E7);
   static const Color white = Color(0xFFFFFFFF);
   static const Color black = Color(0xFF000000);
-  static const Color red = Color(0xffFF5555);
+  static const Color borderGrey = Color(0xFF474747);
+  static const Color borderGrey2 = Color(0xFF232323);
+  static const Color red = Colors.red;
+  static const Color green = Colors.green;
 }
 
 MaterialColor generateMaterialColor(Color color) {

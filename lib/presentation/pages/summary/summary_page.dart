@@ -2,6 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:personal_finance_app/presentation/widgets/custom_button.dart';
+import 'package:personal_finance_app/presentation/widgets/form/custom_drop_down_field.dart';
 import 'package:sticky_headers/sticky_headers.dart';
 
 import '../../../core/injections/dependency_injections.dart';
@@ -294,19 +296,11 @@ class _FilterSheetState extends State<_FilterSheet> {
         children: [
           Text('Filters', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
+          CustomDropdownSearch<String>(
             value: _selectedCategory,
-            hint: const Text('Filter by category'),
-            isExpanded: true,
-            items: [
-              const DropdownMenuItem(
-                value: null,
-                child: Text('All Categories'),
-              ),
-              ...uniqueCategories.map(
-                (cat) => DropdownMenuItem(value: cat, child: Text(cat)),
-              ),
-            ],
+            hint: 'Filter by category',
+            itemAsString: (value) => value,
+            items: uniqueCategories,
             onChanged: (val) => setState(() => _selectedCategory = val),
           ),
           const SizedBox(height: 16),
@@ -335,8 +329,8 @@ class _FilterSheetState extends State<_FilterSheet> {
             },
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
-            child: const Text('Apply Filters'),
+          CustomSubmitButton(
+            buttonTitle: 'Apply Filters',
             onPressed: () {
               context.read<FinanceBloc>().add(
                 FilterAndSortEntries(

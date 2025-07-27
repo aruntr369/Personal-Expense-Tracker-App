@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/styles/app_colors.dart';
 import '../../../../domain/entities/expense_entry.dart';
 import '../../../../domain/entities/income_entry.dart';
 import '../../../../domain/entities/transaction.dart';
@@ -198,7 +199,7 @@ class _FinanceChartsState extends State<FinanceCharts> {
                 ),
                 BarChartRodData(
                   toY: weeklyExpenseTotals[i],
-                  color: Colors.orange.shade400,
+                  color: Palette.secondary,
                   width: 15,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(4),

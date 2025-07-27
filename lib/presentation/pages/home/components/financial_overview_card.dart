@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:personal_finance_app/core/styles/app_colors.dart';
 
 class FinancialOverviewCard extends StatelessWidget {
   final double income;
@@ -26,7 +27,7 @@ class FinancialOverviewCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.deepPurple.shade400,
+              Palette.primary,
               Colors.purple.shade500,
               Colors.pink.shade400,
             ],
