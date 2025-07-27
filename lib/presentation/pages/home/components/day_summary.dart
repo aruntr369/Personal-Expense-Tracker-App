@@ -47,7 +47,6 @@ class _DailyTransactionsViewState extends State<DailyTransactionsView> {
   List<DateTime> _getDaysOfCurrentMonth() {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
-    // ✅ Use DateUtils.getDaysInMonth to get the total number of days.
     final totalDays = DateUtils.getDaysInMonth(now.year, now.month);
     return List.generate(
       totalDays,
@@ -139,11 +138,9 @@ class _DateChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = DateUtils.dateOnly(DateTime.now());
     final isToday = DateUtils.isSameDay(date, today);
-    // ✅ Check if the date is in the future.
     final isFuture = date.isAfter(today);
     final colorScheme = Theme.of(context).colorScheme;
 
-    // Use a muted color for future dates.
     final defaultTextColor = isFuture ? Colors.grey : colorScheme.onSurface;
     final defaultSubtitleColor =
         isFuture ? Colors.grey : colorScheme.onSurfaceVariant;

@@ -79,7 +79,10 @@ class _SummaryViewState extends State<_SummaryView> {
       builder: (context, state) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Transaction Summary'),
+            title: const Text(
+              'Transaction History',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             actions: [
               if (state is EntriesLoaded)
                 IconButton(

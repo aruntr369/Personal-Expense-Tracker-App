@@ -48,7 +48,6 @@ class FinanceBloc extends Bloc<FinanceEvent, FinanceState> {
             event.entry.date,
           );
 
-          // Use your property name: limitAmount
           if ((spentAmount + event.entry.amount) > categoryLimit.limitAmount) {
             emit(
               ExpenseLimitWarning(

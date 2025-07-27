@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/injections/dependency_injections.dart';
 import 'core/styles/app_theme.dart';
+import 'core/utils/constants/app_constants.dart';
 import 'data/models/category_limit_model.dart';
 import 'data/models/expense_entry_model.dart';
 import 'data/models/income_entry_model.dart';
@@ -25,7 +26,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'FinFlow',
+      debugShowCheckedModeBanner: false,
+      title: AppString.appName,
       theme: AppTheme.theme,
       routerConfig: appRouter.config(),
     );

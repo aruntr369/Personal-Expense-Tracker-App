@@ -1,3 +1,7 @@
+abstract class AppString {
+  static const String appName = 'FinFlow';
+}
+
 abstract class HiveNames {
   static const String incomeBoxName = 'incomeBox';
   static const String expenseBoxName = 'expenseBox';
