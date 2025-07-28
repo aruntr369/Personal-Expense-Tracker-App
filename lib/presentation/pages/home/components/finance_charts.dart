@@ -45,7 +45,6 @@ class _FinanceChartsState extends State<FinanceCharts> {
         const SizedBox(height: 16),
         _buildMonthlyOverviewBarChart(),
         const SizedBox(height: 32),
-
         const Text(
           'Spending by Category',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -78,6 +77,13 @@ class _FinanceChartsState extends State<FinanceCharts> {
     );
   }
 
+  /// Calculates the number of weeks in a given month.
+  int _getNumberOfWeeksInMonth(DateTime date) {
+    final lastDay = DateUtils.getDaysInMonth(date.year, date.month);
+    final lastDate = DateTime(date.year, date.month, lastDay);
+    return _getWeekOfMonth(lastDate) + 1;
+  }
+
   Widget _buildMonthlyOverviewBarChart() {
     final now = DateTime.now();
     final monthlyTransactions =
@@ -89,15 +95,19 @@ class _FinanceChartsState extends State<FinanceCharts> {
       return _buildEmptyState('No data for this month\'s overview.');
     }
 
-    final weeklyIncomeTotals = List<double>.filled(5, 0.0);
-    final weeklyExpenseTotals = List<double>.filled(5, 0.0);
+    final int weekCount = _getNumberOfWeeksInMonth(now);
+
+    final weeklyIncomeTotals = List<double>.filled(weekCount, 0.0);
+    final weeklyExpenseTotals = List<double>.filled(weekCount, 0.0);
 
     for (var transaction in monthlyTransactions) {
       final weekIndex = _getWeekOfMonth(transaction.date);
-      if (transaction is IncomeEntry) {
-        weeklyIncomeTotals[weekIndex] += transaction.amount;
-      } else if (transaction is ExpenseEntry) {
-        weeklyExpenseTotals[weekIndex] += transaction.amount;
+      if (weekIndex < weekCount) {
+        if (transaction is IncomeEntry) {
+          weeklyIncomeTotals[weekIndex] += transaction.amount;
+        } else if (transaction is ExpenseEntry) {
+          weeklyExpenseTotals[weekIndex] += transaction.amount;
+        }
       }
     }
 
@@ -181,10 +191,9 @@ class _FinanceChartsState extends State<FinanceCharts> {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            // Use the same interval for the grid lines
             horizontalInterval: maxY / 4,
           ),
-          barGroups: List.generate(4, (i) {
+          barGroups: List.generate(weekCount, (i) {
             return BarChartGroupData(
               x: i,
               barRods: [
